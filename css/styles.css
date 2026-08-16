@@ -55,6 +55,59 @@ body {
 
 .center-row { text-align: center; }
 
+.login-card.wide { max-width: 520px; }
+
+.stack-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 4px 0;
+}
+
+.tag-guest {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  background: #eef2ff;
+  color: #4f46e5;
+  padding: 2px 7px;
+  border-radius: 999px;
+  margin-left: 4px;
+}
+
+.requester-info {
+  font-size: 13px;
+  color: var(--text-muted);
+  background: var(--bg);
+  padding: 8px 10px;
+  border-radius: 8px;
+}
+
+.lookup-results { margin-top: 16px; }
+
+.lookup-item {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  text-align: left;
+}
+
+.lookup-item-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.lookup-desc {
+  font-size: 13px;
+  color: var(--text);
+  margin: 6px 0;
+  white-space: pre-wrap;
+}
+
 /* ---- 폼 요소 ---------------------------------------------------------- */
 
 label {
