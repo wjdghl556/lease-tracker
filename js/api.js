@@ -75,13 +75,12 @@ window.Api = (function () {
   }
 
   async function submitGuestCase({ guest_name, guest_contact, title, property_address, description }) {
-    const { data, error } = await sb()
+    // 게스트(anon)는 cases 테이블을 직접 조회할 권한이 없으므로, 등록 후 결과를
+    // 돌려받으려 하면(.select()) 보안 규칙에 막힙니다. 등록만 하고 끝냅니다.
+    const { error } = await sb()
       .from("cases")
-      .insert({ guest_name, guest_contact, title, property_address, description })
-      .select()
-      .single();
+      .insert({ guest_name, guest_contact, title, property_address, description });
     if (error) throw error;
-    return data;
   }
 
   async function lookupGuestCases(guestName, guestContact) {
