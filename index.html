@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>업무진척도 현황판</title>
+<link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+
+  <!-- 로그인 화면 -->
+  <section id="login-view" class="login-screen">
+    <form id="login-form" class="login-card">
+      <h1 id="login-title">업무진척도 현황판</h1>
+      <p class="muted">담당자 계정으로 로그인하세요.</p>
+      <label>이메일
+        <input type="email" id="login-email" required autocomplete="username" />
+      </label>
+      <label>비밀번호
+        <input type="password" id="login-password" required autocomplete="current-password" />
+      </label>
+      <button type="submit" id="login-submit" class="btn primary full">로그인</button>
+      <div id="signup-toggle-row" class="hidden center-row">
+        <a href="#" id="signup-link">처음이신가요? 계정 만들기</a>
+      </div>
+    </form>
+  </section>
+
+  <!-- 메인 앱 화면 -->
+  <section id="app-view" class="app-shell hidden">
+    <header class="topbar">
+      <h1 id="app-title">업무진척도 현황판</h1>
+      <div class="topbar-right">
+        <span id="user-name" class="muted"></span>
+        <button id="logout-btn" class="btn ghost">로그아웃</button>
+      </div>
+    </header>
+
+    <div class="toolbar">
+      <div id="status-filter" class="chip-row"></div>
+      <div class="toolbar-right">
+        <select id="filter-assignee"></select>
+        <input type="search" id="search-input" placeholder="제목 / 주소 검색" />
+        <button id="refresh-btn" class="btn ghost" title="새로고침">↻</button>
+        <button id="new-case-btn" class="btn primary">＋ 새 건 등록</button>
+      </div>
+    </div>
+
+    <div class="board-meta">
+      <span id="board-count" class="muted"></span>
+      <span id="board-loading" class="muted hidden">불러오는 중...</span>
+    </div>
+
+    <div class="board-wrap">
+      <table class="board">
+        <thead>
+          <tr>
+            <th>제목 / 임차목적물 주소</th>
+            <th>진척도</th>
+            <th>담당자</th>
+            <th>등록자</th>
+            <th>기한</th>
+            <th>최근 수정</th>
+          </tr>
+        </thead>
+        <tbody id="board-body"></tbody>
+      </table>
+      <div id="board-empty" class="empty-state hidden">등록된 검토 건이 없습니다.</div>
+    </div>
+  </section>
+
+  <!-- 등록/상세 모달 -->
+  <div id="case-modal" class="modal-backdrop hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="modal-title">검토 건 등록</h2>
+        <button id="close-modal-btn" class="icon-btn" title="닫기">✕</button>
+      </div>
+
+      <form id="case-form" class="modal-body">
+        <input type="hidden" id="form-case-id" />
+
+        <div class="form-row hidden" id="form-status-row">
+          <label>진척도 상태
+            <select id="form-status"></select>
+          </label>
+        </div>
+
+        <label>제목
+          <input type="text" id="form-title" required placeholder="예: OO빌딩 3층 임차목적물 검토" />
+        </label>
+
+        <label>임차목적물 주소
+          <input type="text" id="form-address" placeholder="예: 서울시 강남구 ..." />
+        </label>
+
+        <div class="form-row two">
+          <label>담당자
+            <select id="form-assignee"></select>
+          </label>
+          <label>처리 기한
+            <input type="date" id="form-due-date" />
+          </label>
+        </div>
+
+        <label>비고 / 검토 내용
+          <textarea id="form-description" rows="4" placeholder="검토 사항, 특이사항 등을 기록하세요"></textarea>
+        </label>
+
+        <div class="form-row">
+          <label>첨부파일 (계약서 등)
+            <input type="file" id="attachment-file" multiple />
+          </label>
+          <button type="button" id="attach-only-btn" class="btn ghost small">파일만 추가 업로드</button>
+        </div>
+
+        <div>
+          <h3 class="section-title">첨부파일 목록</h3>
+          <ul id="attachment-list" class="attachment-list"></ul>
+        </div>
+
+        <div>
+          <h3 class="section-title">진척도 변경 이력</h3>
+          <div id="status-history" class="status-history"></div>
+        </div>
+
+        <p id="readonly-note" class="muted hidden">본인이 등록했거나 담당자로 지정된 건만 수정할 수 있습니다.</p>
+
+        <div class="modal-footer">
+          <button type="button" id="delete-case-btn" class="btn danger hidden">삭제</button>
+          <button type="submit" id="case-submit" class="btn primary">저장</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+  <script src="js/config.js" defer></script>
+  <script src="js/client.js" defer></script>
+  <script src="js/api.js" defer></script>
+  <script src="js/app.js" defer></script>
+</body>
+</html>
