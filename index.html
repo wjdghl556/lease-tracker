@@ -8,11 +8,85 @@
 </head>
 <body>
 
-  <!-- 로그인 화면 -->
-  <section id="login-view" class="login-screen">
+  <!-- 게스트 홈 화면 -->
+  <section id="guest-home" class="login-screen">
+    <div class="login-card">
+      <h1 id="home-title">업무진척도 현황판</h1>
+      <p class="muted">임차목적물 검토를 새로 요청하시거나, 이전에 등록한 요청의 진행 상황을 확인하세요.</p>
+      <div class="stack-buttons">
+        <button id="btn-goto-submit" class="btn primary full">새 검토 요청 등록</button>
+        <button id="btn-goto-lookup" class="btn ghost full">내 요청 조회</button>
+      </div>
+      <div class="center-row"><a href="#" id="link-admin-login">관리자 로그인</a></div>
+    </div>
+  </section>
+
+  <!-- 게스트: 새 요청 등록 -->
+  <section id="guest-submit-view" class="login-screen hidden">
+    <div class="login-card">
+      <div id="guest-submit-form-wrap">
+        <h1>새 검토 요청 등록</h1>
+        <p class="muted">이름과 연락처는 나중에 진행 상황을 조회할 때 필요하니 정확히 입력해주세요.</p>
+        <form id="guest-submit-form">
+          <label>이름
+            <input type="text" id="guest-name" required />
+          </label>
+          <label>연락처 (전화번호 또는 이메일)
+            <input type="text" id="guest-contact" required />
+          </label>
+          <label>제목
+            <input type="text" id="guest-title" required placeholder="예: OO빌딩 3층 임차목적물 검토 요청" />
+          </label>
+          <label>임차목적물 주소
+            <input type="text" id="guest-address" />
+          </label>
+          <label>요청 내용
+            <textarea id="guest-description" rows="4" placeholder="검토를 요청하시는 내용을 적어주세요"></textarea>
+          </label>
+          <button type="submit" id="guest-submit-btn" class="btn primary full">등록하기</button>
+        </form>
+        <div class="center-row"><a href="#" id="btn-submit-back">← 홈으로</a></div>
+      </div>
+      <div id="guest-submit-success-wrap" class="hidden">
+        <h1>등록 완료</h1>
+        <p>요청이 정상적으로 등록되었습니다. 아래 정보를 꼭 기억해두세요 (나중에 조회할 때 필요합니다).</p>
+        <p>
+          <strong>이름:</strong> <span id="guest-submit-summary-name"></span><br />
+          <strong>연락처:</strong> <span id="guest-submit-summary-contact"></span>
+        </p>
+        <div class="stack-buttons">
+          <button id="btn-after-submit-lookup" class="btn primary full">지금 조회해보기</button>
+          <button id="btn-after-submit-new" class="btn ghost full">다른 요청 등록하기</button>
+        </div>
+        <div class="center-row"><a href="#" id="btn-after-submit-home">← 홈으로</a></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 게스트: 내 요청 조회 -->
+  <section id="guest-lookup-view" class="login-screen hidden">
+    <div class="login-card wide">
+      <h1>내 요청 조회</h1>
+      <p class="muted">요청 등록 시 입력하신 이름과 연락처를 입력해주세요.</p>
+      <form id="guest-lookup-form">
+        <label>이름
+          <input type="text" id="lookup-name" required />
+        </label>
+        <label>연락처
+          <input type="text" id="lookup-contact" required />
+        </label>
+        <button type="submit" class="btn primary full">조회</button>
+      </form>
+      <div id="guest-lookup-results" class="lookup-results"></div>
+      <div class="center-row"><a href="#" id="btn-lookup-back">← 홈으로</a></div>
+    </div>
+  </section>
+
+  <!-- 관리자 로그인 화면 -->
+  <section id="login-view" class="login-screen hidden">
     <form id="login-form" class="login-card">
-      <h1 id="login-title">업무진척도 현황판</h1>
-      <p class="muted">담당자 계정으로 로그인하세요.</p>
+      <h1 id="login-title">관리자 로그인</h1>
+      <p class="muted">관리자 계정으로 로그인하세요.</p>
       <label>이메일
         <input type="email" id="login-email" required autocomplete="username" />
       </label>
@@ -20,9 +94,7 @@
         <input type="password" id="login-password" required autocomplete="current-password" />
       </label>
       <button type="submit" id="login-submit" class="btn primary full">로그인</button>
-      <div id="signup-toggle-row" class="hidden center-row">
-        <a href="#" id="signup-link">처음이신가요? 계정 만들기</a>
-      </div>
+      <div class="center-row"><a href="#" id="btn-login-back">← 홈으로</a></div>
     </form>
   </section>
 
@@ -58,7 +130,7 @@
             <th>제목 / 임차목적물 주소</th>
             <th>진척도</th>
             <th>담당자</th>
-            <th>등록자</th>
+            <th>신청자</th>
             <th>기한</th>
             <th>최근 수정</th>
           </tr>
@@ -79,6 +151,8 @@
 
       <form id="case-form" class="modal-body">
         <input type="hidden" id="form-case-id" />
+
+        <div id="requester-info" class="requester-info hidden"></div>
 
         <div class="form-row hidden" id="form-status-row">
           <label>진척도 상태
@@ -123,8 +197,6 @@
           <h3 class="section-title">진척도 변경 이력</h3>
           <div id="status-history" class="status-history"></div>
         </div>
-
-        <p id="readonly-note" class="muted hidden">본인이 등록했거나 담당자로 지정된 건만 수정할 수 있습니다.</p>
 
         <div class="modal-footer">
           <button type="button" id="delete-case-btn" class="btn danger hidden">삭제</button>
