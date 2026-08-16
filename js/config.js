@@ -4,8 +4,8 @@
 // Supabase Dashboard > Project Settings > API 에서 확인할 수 있습니다.
 // ============================================================================
 window.APP_CONFIG = {
-  SUPABASE_URL: "https://YOUR-PROJECT-REF.supabase.co",
-  SUPABASE_ANON_KEY: "YOUR-ANON-PUBLIC-KEY",
+  SUPABASE_URL: "https://yceqhlewlkbqnovfokmx.supabase.co",
+  SUPABASE_ANON_KEY: "sb_publishable_JUf91YuLMviXzowPRr9dfg_Os9g1IZN",
 
   // 회사/팀 이름 등 화면 상단에 표시할 제목
   APP_TITLE: "임차목적물 검토 업무진척도 현황판",
