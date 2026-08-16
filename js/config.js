@@ -14,7 +14,6 @@ window.APP_CONFIG = {
   STATUS_OPTIONS: [
     { value: "접수", color: "#64748b" },
     { value: "서류검토중", color: "#2563eb" },
-    { value: "현장확인중", color: "#d97706" },
     { value: "검토완료", color: "#16a34a" },
     { value: "보류", color: "#dc2626" },
   ],
