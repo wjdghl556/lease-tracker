@@ -5,6 +5,8 @@
   const cfg = window.APP_CONFIG;
   const el = (id) => document.getElementById(id);
 
+  const VIEWS = ["guest-home", "guest-submit-view", "guest-lookup-view", "login-view", "app-view"];
+
   const state = {
     session: null,
     profile: null,
@@ -45,23 +47,23 @@
     setTimeout(() => (toast.className = "toast"), 3200);
   }
 
-  function canEdit(caseItem) {
-    if (!state.profile) return false;
-    if (state.profile.role === "admin") return true;
-    if (caseItem.created_by === state.profile.id) return true;
-    if (caseItem.assignee_id === state.profile.id) return true;
-    return false;
+  function escapeHtml(str) {
+    const div = document.createElement("div");
+    div.textContent = str ?? "";
+    return div.innerHTML;
   }
 
-  // ---- 인증 ----------------------------------------------------------------
+  function showView(name) {
+    VIEWS.forEach((v) => el(v).classList.toggle("hidden", v !== name));
+  }
+
+  // ---- 초기화 / 인증 ----------------------------------------------------------
 
   async function init() {
     document.title = cfg.APP_TITLE;
     el("app-title").textContent = cfg.APP_TITLE;
-    el("login-title").textContent = cfg.APP_TITLE;
-    if (cfg.ALLOW_SELF_SIGNUP) {
-      el("signup-toggle-row").classList.remove("hidden");
-    }
+    el("home-title").textContent = cfg.APP_TITLE;
+    el("login-title").textContent = "관리자 로그인";
     buildStatusFilterOptions();
     buildFormStatusOptions();
     bindEvents();
@@ -75,20 +77,15 @@
     if (state.session) {
       await enterApp();
     } else {
-      showLogin();
+      showView("guest-home");
     }
 
     if (window.sb) {
       window.sb.auth.onAuthStateChange((event, session) => {
         state.session = session;
-        if (event === "SIGNED_OUT") showLogin();
+        if (event === "SIGNED_OUT") showView("guest-home");
       });
     }
-  }
-
-  function showLogin() {
-    el("login-view").classList.remove("hidden");
-    el("app-view").classList.add("hidden");
   }
 
   async function enterApp() {
@@ -98,8 +95,7 @@
       showToast("프로필을 불러오지 못했습니다: " + e.message, true);
       return;
     }
-    el("login-view").classList.add("hidden");
-    el("app-view").classList.remove("hidden");
+    showView("app-view");
     el("user-name").textContent = `${state.profile.name}${
       state.profile.role === "admin" ? " (관리자)" : ""
     }`;
@@ -133,28 +129,97 @@
     }
   }
 
-  async function handleSignup(ev) {
-    ev.preventDefault();
-    const email = el("login-email").value.trim();
-    const password = el("login-password").value;
-    const name = prompt("담당자 이름을 입력하세요");
-    if (!name) return;
-    try {
-      await Api.signUp(email, password, name);
-      showToast("가입 완료. 이메일 인증이 필요할 수 있습니다. 로그인해주세요.");
-    } catch (e) {
-      showToast("가입 실패: " + e.message, true);
-    }
-  }
-
   async function handleLogout() {
     await Api.signOut();
     state.profile = null;
     state.cases = [];
-    showLogin();
+    showView("guest-home");
   }
 
-  // ---- 목록 / 필터 -----------------------------------------------------------
+  // ---- 게스트: 새 요청 등록 ---------------------------------------------------
+
+  function resetGuestSubmitView() {
+    el("guest-submit-form").reset();
+    el("guest-submit-form-wrap").classList.remove("hidden");
+    el("guest-submit-success-wrap").classList.add("hidden");
+  }
+
+  async function handleGuestSubmit(ev) {
+    ev.preventDefault();
+    const payload = {
+      guest_name: el("guest-name").value.trim(),
+      guest_contact: el("guest-contact").value.trim(),
+      title: el("guest-title").value.trim(),
+      property_address: el("guest-address").value.trim(),
+      description: el("guest-description").value.trim(),
+    };
+
+    if (!payload.guest_name || !payload.guest_contact || !payload.title) {
+      showToast("이름, 연락처, 제목은 필수입니다.", true);
+      return;
+    }
+
+    const btn = el("guest-submit-btn");
+    btn.disabled = true;
+    try {
+      await Api.submitGuestCase(payload);
+      el("guest-submit-summary-name").textContent = payload.guest_name;
+      el("guest-submit-summary-contact").textContent = payload.guest_contact;
+      el("guest-submit-form-wrap").classList.add("hidden");
+      el("guest-submit-success-wrap").classList.remove("hidden");
+    } catch (e) {
+      showToast("등록 실패: " + e.message, true);
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  // ---- 게스트: 내 요청 조회 ---------------------------------------------------
+
+  function resetGuestLookupView() {
+    el("guest-lookup-form").reset();
+    el("guest-lookup-results").innerHTML = "";
+  }
+
+  async function handleGuestLookup(ev) {
+    ev.preventDefault();
+    const name = el("lookup-name").value.trim();
+    const contact = el("lookup-contact").value.trim();
+    if (!name || !contact) {
+      showToast("이름과 연락처를 입력해주세요.", true);
+      return;
+    }
+
+    const resultsWrap = el("guest-lookup-results");
+    resultsWrap.innerHTML = `<p class="muted">조회 중...</p>`;
+    try {
+      const rows = await Api.lookupGuestCases(name, contact);
+      if (!rows || rows.length === 0) {
+        resultsWrap.innerHTML = `<p class="muted">일치하는 요청 내역이 없습니다. 이름/연락처를 다시 확인해주세요.</p>`;
+        return;
+      }
+      resultsWrap.innerHTML = "";
+      rows.forEach((c) => {
+        const div = document.createElement("div");
+        div.className = "lookup-item";
+        div.innerHTML = `
+          <div class="lookup-item-head">
+            <strong>${escapeHtml(c.title)}</strong>
+            <span class="badge" style="--badge-color:${statusColor(c.status)}">${c.status}</span>
+          </div>
+          <div class="cell-sub">${escapeHtml(c.property_address || "")}</div>
+          ${c.description ? `<p class="lookup-desc">${escapeHtml(c.description)}</p>` : ""}
+          <div class="muted">접수일 ${fmtDate(c.created_at)} · 최근 업데이트 ${fmtDateTime(c.updated_at)}</div>
+        `;
+        resultsWrap.appendChild(div);
+      });
+    } catch (e) {
+      resultsWrap.innerHTML = "";
+      showToast("조회 실패: " + e.message, true);
+    }
+  }
+
+  // ---- 관리자: 목록 / 필터 -----------------------------------------------------
 
   function buildStatusFilterOptions() {
     const wrap = el("status-filter");
@@ -235,6 +300,10 @@
     }
 
     rows.forEach((c) => {
+      const requesterCell = c.guest_name
+        ? `${escapeHtml(c.guest_name)} <span class="tag-guest">고객</span>`
+        : escapeHtml(c.creator ? c.creator.name : "관리자");
+
       const tr = document.createElement("tr");
       tr.innerHTML = `
         <td class="cell-title">
@@ -243,7 +312,7 @@
         </td>
         <td><span class="badge" style="--badge-color:${statusColor(c.status)}">${c.status}</span></td>
         <td>${c.assignee ? escapeHtml(c.assignee.name) : '<span class="muted">미지정</span>'}</td>
-        <td>${escapeHtml(c.creator ? c.creator.name : "-")}</td>
+        <td>${requesterCell}</td>
         <td>${fmtDate(c.due_date)}</td>
         <td>${fmtDateTime(c.updated_at)}</td>
       `;
@@ -258,12 +327,6 @@
     });
   }
 
-  function escapeHtml(str) {
-    const div = document.createElement("div");
-    div.textContent = str ?? "";
-    return div.innerHTML;
-  }
-
   let searchTimer = null;
   function handleSearchInput(ev) {
     state.search = ev.target.value.trim();
@@ -271,13 +334,14 @@
     searchTimer = setTimeout(refreshCases, 350);
   }
 
-  // ---- 등록 / 수정 모달 -------------------------------------------------------
+  // ---- 관리자: 등록 / 수정 모달 -------------------------------------------------
 
   function openNewCaseModal() {
     el("modal-title").textContent = "검토 건 등록";
     el("case-form").reset();
     el("form-case-id").value = "";
     el("form-status-row").classList.add("hidden");
+    el("requester-info").classList.add("hidden");
     el("delete-case-btn").classList.add("hidden");
     el("case-modal").classList.remove("hidden");
   }
@@ -296,9 +360,13 @@
       el("form-status").value = c.status;
       el("form-status-row").classList.remove("hidden");
 
-      const editable = canEdit(c);
-      setFormEditable(editable);
-      el("delete-case-btn").classList.toggle("hidden", !editable);
+      const requesterInfo = el("requester-info");
+      requesterInfo.textContent = c.guest_name
+        ? `신청자: ${c.guest_name} (${c.guest_contact}) · 고객 신청`
+        : `등록자: ${c.creator ? c.creator.name : "관리자"} · 관리자 등록`;
+      requesterInfo.classList.remove("hidden");
+
+      el("delete-case-btn").classList.remove("hidden");
 
       el("case-modal").classList.remove("hidden");
       await renderAttachments(id);
@@ -306,14 +374,6 @@
     } catch (e) {
       showToast("상세 정보를 불러오지 못했습니다: " + e.message, true);
     }
-  }
-
-  function setFormEditable(editable) {
-    ["form-title", "form-address", "form-description", "form-due-date", "form-assignee", "form-status"].forEach(
-      (id) => (el(id).disabled = !editable)
-    );
-    el("case-submit").classList.toggle("hidden", !editable);
-    el("readonly-note").classList.toggle("hidden", editable);
   }
 
   async function renderAttachments(caseId) {
@@ -461,9 +521,54 @@
   // ---- 이벤트 바인딩 ----------------------------------------------------------
 
   function bindEvents() {
+    // 게스트 홈
+    el("btn-goto-submit").addEventListener("click", () => {
+      resetGuestSubmitView();
+      showView("guest-submit-view");
+    });
+    el("btn-goto-lookup").addEventListener("click", () => {
+      resetGuestLookupView();
+      showView("guest-lookup-view");
+    });
+    el("link-admin-login").addEventListener("click", (ev) => {
+      ev.preventDefault();
+      showView("login-view");
+    });
+
+    // 게스트: 새 요청 등록
+    el("guest-submit-form").addEventListener("submit", handleGuestSubmit);
+    el("btn-submit-back").addEventListener("click", (ev) => {
+      ev.preventDefault();
+      showView("guest-home");
+    });
+    el("btn-after-submit-home").addEventListener("click", (ev) => {
+      ev.preventDefault();
+      showView("guest-home");
+    });
+    el("btn-after-submit-new").addEventListener("click", () => {
+      resetGuestSubmitView();
+    });
+    el("btn-after-submit-lookup").addEventListener("click", () => {
+      resetGuestLookupView();
+      showView("guest-lookup-view");
+    });
+
+    // 게스트: 내 요청 조회
+    el("guest-lookup-form").addEventListener("submit", handleGuestLookup);
+    el("btn-lookup-back").addEventListener("click", (ev) => {
+      ev.preventDefault();
+      showView("guest-home");
+    });
+
+    // 관리자 로그인
     el("login-form").addEventListener("submit", handleLogin);
-    el("signup-link").addEventListener("click", handleSignup);
+    el("btn-login-back").addEventListener("click", (ev) => {
+      ev.preventDefault();
+      showView("guest-home");
+    });
     el("logout-btn").addEventListener("click", handleLogout);
+
+    // 관리자 화면
     el("new-case-btn").addEventListener("click", openNewCaseModal);
     el("close-modal-btn").addEventListener("click", closeModal);
     el("case-modal").addEventListener("click", (ev) => {

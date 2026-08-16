@@ -23,16 +23,6 @@ window.Api = (function () {
     return data;
   }
 
-  async function signUp(email, password, name) {
-    const { data, error } = await sb().auth.signUp({
-      email,
-      password,
-      options: { data: { name } },
-    });
-    if (error) throw error;
-    return data;
-  }
-
   async function signOut() {
     const { error } = await sb().auth.signOut();
     if (error) throw error;
@@ -55,6 +45,7 @@ window.Api = (function () {
       .from("cases")
       .select(
         `id, title, property_address, status, description, due_date, created_at, updated_at,
+         guest_name, guest_contact,
          assignee:assignee_id ( id, name ),
          creator:created_by ( id, name )`
       )
@@ -73,12 +64,31 @@ window.Api = (function () {
       .from("cases")
       .select(
         `id, title, property_address, status, description, due_date, created_at, updated_at,
-         assignee_id, created_by,
+         assignee_id, created_by, guest_name, guest_contact,
          assignee:assignee_id ( id, name ),
          creator:created_by ( id, name )`
       )
       .eq("id", id)
       .single();
+    if (error) throw error;
+    return data;
+  }
+
+  async function submitGuestCase({ guest_name, guest_contact, title, property_address, description }) {
+    const { data, error } = await sb()
+      .from("cases")
+      .insert({ guest_name, guest_contact, title, property_address, description })
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  }
+
+  async function lookupGuestCases(guestName, guestContact) {
+    const { data, error } = await sb().rpc("lookup_my_cases", {
+      p_name: guestName,
+      p_contact: guestContact,
+    });
     if (error) throw error;
     return data;
   }
@@ -150,12 +160,13 @@ window.Api = (function () {
   return {
     getSession,
     signIn,
-    signUp,
     signOut,
     getMyProfile,
     listProfiles,
     listCases,
     getCase,
+    submitGuestCase,
+    lookupGuestCases,
     createCase,
     updateCase,
     deleteCase,
